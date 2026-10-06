@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      target: development
+    container_name: skydrift-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env.local
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - skydrift_data:/app/data
+      - skydrift_uploads:/app/uploads
+    environment:
+      - NODE_ENV=development
+
+volumes:
+  skydrift_data:
+    driver: local
+  skydrift_uploads:
+    driver: local

@@ -1,0 +1,22 @@
+# Dependencies & build
+node_modules/
+dist/
+npm-debug.log*
+
+# Environment & secrets
+.env
+.env.local
+.env.prod
+!.env.example
+
+# Local storage & databases (keep empty dirs tracked)
+data/*
+!data/.gitkeep
+uploads/*
+!uploads/.gitkeep
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
