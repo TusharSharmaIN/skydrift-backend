@@ -1,21 +1,35 @@
 import { Module } from '@nestjs/common';
-import { createObserveModule } from '@nestjs/observe';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-
-export const { ObserveModule, ObserveInstrument } = createObserveModule();
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { TerminusModule } from '@nestjs/terminus';
+import { envValidationSchema } from './config/env.validation';
+import { HealthController } from './health.controller';
+import { DriftModule } from './modules/drift/drift.module';
 
 @Module({
   imports: [
-    // Distributed tracing, auto-correlated logs, request/job metrics, error
-    // telemetry, alarms, and more — out of the box. Sign up at https://observe.nestjs.com
-    ObserveModule.forRoot({
-      appKey: 'YOUR_APP_KEY',
-      appSecret: 'YOUR_APP_SECRET',
-      serviceId: 'skydrift-backend',
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env.local', '.env'],
+      validationSchema: envValidationSchema,
     }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: 'postgres',
+        host: config.get<string>('DB_HOST', 'localhost'),
+        port: Number(config.get<number>('DB_PORT', 5432)),
+        username: config.get<string>('DB_USERNAME', 'skydrift'),
+        password: config.get<string>('DB_PASSWORD', 'skydrift_password'),
+        database: config.get<string>('DB_NAME', 'skydrift_dev'),
+        autoLoadEntities: true,
+        synchronize: true,
+      }),
+    }),
+    TerminusModule,
+    DriftModule,
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [HealthController],
 })
 export class AppModule {}

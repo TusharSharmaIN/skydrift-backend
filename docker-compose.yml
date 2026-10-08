@@ -1,26 +1,52 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: skydrift-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: skydrift
+      POSTGRES_PASSWORD: skydrift_password
+      POSTGRES_DB: skydrift_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - skydrift_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skydrift -d skydrift_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   api:
     build:
       context: .
       target: development
     container_name: skydrift-api
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
-      - "${PORT:-3000}:3000"
+      - "3000:3000"
     env_file:
       - .env.local
     volumes:
       - .:/app
       - /app/node_modules
-      - skydrift_data:/app/data
       - skydrift_uploads:/app/uploads
     environment:
       - NODE_ENV=development
+      - DB_TYPE=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USERNAME=skydrift
+      - DB_PASSWORD=skydrift_password
+      - DB_NAME=skydrift_dev
 
 volumes:
-  skydrift_data:
+  skydrift_pgdata:
     driver: local
   skydrift_uploads:
     driver: local
