@@ -1,4 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ServiceUnavailableException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -12,47 +17,36 @@ export interface CloudAnalysisResult {
 @Injectable()
 export class GemmaVisionService {
   private readonly logger = new Logger(GemmaVisionService.name);
-  private ai: GoogleGenerativeAI | null = null;
+  private ai: GoogleGenerativeAI;
 
   constructor(private readonly config: ConfigService) {
     const apiKey = this.config.get<string>('GEMMA_API_KEY');
-    if (apiKey) {
-      this.ai = new GoogleGenerativeAI(apiKey);
-    } else {
-      this.logger.warn(
-        'GEMMA_API_KEY not configured. Mock analysis will be used.',
-      );
+    if (!apiKey) {
+      throw new Error('GEMMA_API_KEY is not defined in environment variables.');
     }
+    this.ai = new GoogleGenerativeAI(apiKey);
   }
 
   async analyzeCloud(
     buffer: Buffer,
     mimeType: string,
   ): Promise<CloudAnalysisResult> {
-    const fallback: CloudAnalysisResult = {
-      imaginedShape: 'A fluffy rabbit bounding across a calm summer sky',
-      cloudType: 'Cumulus humilis',
-      weatherForecast:
-        'Clear, gentle afternoon conditions for the next few hours.',
-      poeticLore:
-        'Soft edges shifting in the light. Take a slow breath and watch the drift.',
-    };
-
-    if (!this.ai) {
-      return fallback;
-    }
-
     try {
       const model = this.ai.getGenerativeModel({
-        model: 'gemini-flash-latest',
+        model: 'gemini-flash-lite-latest',
+        generationConfig: {
+          responseMimeType: 'application/json',
+          temperature: 0.7,
+        },
       });
 
       const prompt = `
-Analyze this photo of the sky/clouds. Return strictly a raw JSON object (without markdown code blocks) with keys:
-- "imaginedShape": A creative, witty description of what shape/creature/object the clouds resemble (pareidolia).
-- "cloudType": Scientific cloud classification (e.g., Altocumulus, Cirrus fibratus, Cumulus humilis).
-- "weatherForecast": A short 1-sentence outdoor weather prediction for the next 2-4 hours based on these clouds.
-- "poeticLore": A relaxing 2-sentence poetic observation inviting the user to lie down in the grass and watch them.
+Analyze this uploaded sky/cloud image carefully based on its actual visual features.
+Return a JSON object with these exact keys:
+- "imaginedShape": A creative, playful shape, creature, or object that these specific clouds look like (pareidolia).
+- "cloudType": A short everyday English label (2-4 words) describing the clouds. Do NOT use Latin/scientific words. Pick the best fit from: ["Fair-weather puffs", "Puffy clouds", "Towering puffs", "Thundercloud", "Low grey sheet", "Lumpy low layer", "Rain layer", "Mid-level veil", "Mid-level heaps", "High wisps", "High milky veil", "Mackerel sky"].
+- "weatherForecast": A short 1-sentence outdoor weather prediction for the next 2-4 hours based on what you see in the sky.
+- "poeticLore": A relaxing 2-sentence poetic observation inviting the user to lie down in the grass and watch this specific sky.
 `;
 
       const imagePart = {
@@ -62,17 +56,26 @@ Analyze this photo of the sky/clouds. Return strictly a raw JSON object (without
         },
       };
 
-      const response = await model.generateContent([prompt, imagePart]);
-      const text = response.response
-        .text()
-        .trim()
-        .replace(/```json|```/g, '');
+      const result = await model.generateContent([prompt, imagePart]);
+      const text = result.response.text().trim();
+
       return JSON.parse(text) as CloudAnalysisResult;
     } catch (err: any) {
       this.logger.error(
-        `AI model call failed (${err.message}). Falling back to default analysis.`,
+        `Gemini Vision analysis failed: ${err.message}`,
+        err.stack,
       );
-      return fallback;
+
+      // Pass clear HTTP status codes to client instead of masking with dummy data
+      if (err.status === 503 || err.message?.includes('503')) {
+        throw new ServiceUnavailableException(
+          'Sky analysis model is currently experiencing high demand. Please try again shortly.',
+        );
+      }
+
+      throw new InternalServerErrorException(
+        `Failed to analyze sky image: ${err.message || 'Unknown error'}`,
+      );
     }
   }
 }
