@@ -1,114 +1,106 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# SkyDrift — Backend API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend for the [SkyDrift Flutter app](https://github.com/TusharSharmaIN/skydrift-app). Accepts a cloud photo, runs it through Gemini Vision, stores the reading, and serves it back.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Highlights
 
-## Description
+☁️ Cloud photo → Gemini Vision → shape + short reading  
+🗄️ Drift history stored in PostgreSQL  
+🖼️ Images uploaded to Cloudinary  
+🚀 Dev (local Docker + Postgres) and Prod (Render + Neon + Cloudinary) environments  
+🏗️ NestJS with TypeORM, modular structure
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Stack
 
-## Project setup
+NestJS · TypeORM · PostgreSQL · Cloudinary · Gemini API · Docker
+
+## Quick Start (Local)
 
 ```bash
-$ npm install
+cp .env.example .env.local   # fill in your keys
+docker compose up --build    # starts API + Postgres
 ```
 
-## Compile and run the project
+API runs at `http://localhost:3000`.
+
+### Without Docker
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
+npm run start:dev
 ```
 
-## Run tests
+Needs a local Postgres running or set `DATABASE_URL` in `.env.local`.
+
+## Scripts
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+npm run start:dev    # watch mode
+npm run start:prod   # production (requires build)
+npm run build        # compile to dist/
+npm run test         # unit tests
+npm run lint         # oxlint
 ```
 
-## Deployment
+## Structure
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+```
+src/
+├── modules/
+│   ├── drift/      # core drift logic (create, list, get)
+│   ├── vision/     # Gemini API integration
+│   ├── storage/    # Cloudinary upload
+│   └── voice/      # (TBD)
+├── config/         # env validation & config service
+├── common/         # shared pipes, filters, etc.
+└── main.ts
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Environment Variables
 
-## Observability
+Copy `.env.example` and fill in:
 
-In production applications, observability is essential for understanding how your system behaves, detecting issues early, and maintaining reliable performance.
+| Variable | Description |
+|---|---|
+| `NODE_ENV` | `development` or `production` |
+| `PORT` | Server port (default `3000`) |
+| `GEMMA_API_KEY` | Gemini API key |
+| `DATABASE_URL` | Postgres connection string (prod / remote) |
+| `DB_HOST/PORT/USERNAME/PASSWORD/NAME` | Local Postgres (Docker) |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
 
-[NestJS Observe](https://observe.nestjs.com) automatically instruments your NestJS application, giving you deep visibility into your system with minimal setup:
+## Production Deployment
 
-- **Distributed tracing:** Follow requests across services and understand how they flow through your system.
-- **Waterfall analysis:** Visualize request execution and identify slow operations, bottlenecks, and unexpected delays.
-- **Performance analysis:** Analyze application performance in real time and quickly pinpoint areas that need optimization.
-- **Metrics:** Track key application and infrastructure metrics to understand system health and performance trends.
-- **Logging:** Centralize and correlate logs with traces and other telemetry to make debugging easier.
-- **Error tracking:** Detect errors quickly and investigate their root causes with the surrounding context.
-- **SLA monitoring:** Track service-level objectives and identify when your application is approaching or exceeding defined thresholds.
-- **Alarms and alerts:** Set up alerts for critical errors, performance degradation, SLA violations, and other anomalies so your team can react quickly.
+> Hosted on [Render](https://render.com) (free Docker-based web service). First request after an idle period may take 10–30s to wake up.
 
-## Resources
+### Infrastructure
 
-Check out a few resources that may come in handy when working with NestJS:
+| Service | Provider | Notes |
+|---|---|---|
+| **API** | Render (free tier) | Docker deploy, auto-deploy on push to `main` |
+| **Database** | [Neon](https://neon.tech) (free tier) | Serverless Postgres, `ap-southeast-1` region, pooler endpoint |
+| **Image Storage** | [Cloudinary](https://cloudinary.com) (free tier) | Cloud name: `jjb9fsde` |
+| **AI** | Google Gemini API | `GEMMA_API_KEY` set in Render environment vars |
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Auto-instrument your application with [NestJS Observer](https://observer.nestjs.com). Distributed tracing, metrics, and logging made easy. Error tracking and performance monitoring for your NestJS applications.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+### Neon Database
 
-## Support
+- Region: `ap-southeast-1` (Singapore)
+- Uses the **pooler** endpoint with `?sslmode=require`
+- Branch: `main`
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+### Render Setup
 
-## Stay in touch
+Set these env vars in Render → Environment:
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+```
+NODE_ENV=production
+DATABASE_URL=<neon pooler connection string>
+GEMMA_API_KEY=...
+CLOUDINARY_CLOUD_NAME=...
+CLOUDINARY_API_KEY=...
+CLOUDINARY_API_SECRET=...
+```
 
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Render uses the `Dockerfile` directly — the multi-stage build produces a slim production image (no dev deps, non-root `node` user).
